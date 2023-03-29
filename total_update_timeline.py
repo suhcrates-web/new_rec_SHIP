@@ -11,7 +11,7 @@ if __name__ == '__main__':
     while True:
         now0 = datetime.now()
         try:
-            before_count, before_max, before_min, after_count, after_max, after_min, num_recieve, num_deal, num_doc2vec, num_deleted, num_corrected, clean0 = mysql_updater(clean0)
+            before_count, after_count, after_max, after_min, num_recieve, num_deal, num_doc2vec, num_deleted, num_corrected, clean0 = mysql_updater(clean0)
             if num_doc2vec !=0 or num_deleted != 0 or num_corrected !=0: #처리한게 하나라도 있으면.
                 if clean0:
                     print('\n============')
