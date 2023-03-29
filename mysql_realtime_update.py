@@ -20,8 +20,6 @@ class ZeroDataException(Exception):
 
 
 def mysql_updater(clean0):
-    keys = [x.decode('utf-8') for x in r.keys('*')]  # redis db 0 에 저장된 key 값 (gid) 모두 인출.
-
     okt = Okt()  # 형태소 변환 모듈
 
     today0 = date.today()
@@ -52,9 +50,9 @@ def mysql_updater(clean0):
 
     # 작업을 수행하기 전 상태 체크
     cursor.execute("""
-    select count(*), max(createtime), min(createtime) from news_recommend.news_ago
+    select gid from news_recommend.news_ago
     """)
-    before_count, before_max, before_min =  cursor.fetchone()
+    keys = np.array(cursor.fetchall()).reshape(1,-1)[0]
 
     num_recieve = len(articles)  # api로 받은 숫자
     num_deal = 0  # 실제 처리대상 숫자..  400자 이상,  부고 인사 단신 제외
@@ -89,7 +87,6 @@ def mysql_updater(clean0):
                         konlpy0 = okt.pos(content, norm=True, join=True)
                         vector0 = model.infer_vector(konlpy0)
                         vector0 = np.array(np.array(vector0))
-                        r.set(ar['gid'], vector0.tobytes())
                         # mysql에 넣기
                         cursor.execute(
                             f"""
@@ -143,8 +140,6 @@ def mysql_updater(clean0):
                 """
         )
 
-        for gid in del_gid:
-            r.delete(gid)  # 키 지워줌
 
     ## 수정 실행
     sql = """update news_recommend.news_ago set title=%s where gid=%s"""

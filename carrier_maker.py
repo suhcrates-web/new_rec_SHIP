@@ -1,14 +1,10 @@
 #### db2 업데이트
-import redis
-from redis import Redis, ConnectionPool
 import numpy as np
-import json
 import mysql.connector
 from database import config
 import time
 import sys
-from datetime import datetime, timedelta
-import codecs
+from datetime import datetime
 
 def carrier_updater():
     db = mysql.connector.connect(**config)
