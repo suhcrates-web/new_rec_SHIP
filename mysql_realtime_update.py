@@ -91,7 +91,7 @@ def mysql_updater(clean0):
                         cursor.execute(
                             f"""
                             insert ignore into news_recommend.news_ago values(
-                            "{ar['gid']}", "{ar['createtime']}", "{title.replace(' ','')}", "{title}", b'{bin(int(binascii.hexlify(content.encode("utf-8")), 16))[2:]}', "{ar['url']}", "{ar['thumburl']}", "{ar['source']}",,"{ar['cate_code']}"{len(content)},{len(content)}, b'{bin(int(binascii.hexlify(str(list(vector0)).encode("utf-8")), 16))[2:]}', b'{bin(int(binascii.hexlify(str( json.dumps(konlpy0)).encode("utf-8")), 16))[2:]}'  )
+                            "{ar['gid']}", "{ar['createtime']}", "{title.replace(' ','')}", "{title}", b'{bin(int(binascii.hexlify(content.encode("utf-8")), 16))[2:]}', "{ar['url']}", "{ar['thumburl']}", "{ar['source']}","{ar['cate_code']}",{len(content)}, b'{bin(int(binascii.hexlify(str(list(vector0)).encode("utf-8")), 16))[2:]}', b'{bin(int(binascii.hexlify(str( json.dumps(konlpy0)).encode("utf-8")), 16))[2:]}'  )
                             """
                         )
                           # 벡터를 mysql에도 저장. 인출떄는  np.array(json.loads(cursor.fetchall()[0][0]))
