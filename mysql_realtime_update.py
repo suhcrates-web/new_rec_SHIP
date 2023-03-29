@@ -9,8 +9,6 @@ from database import config
 from datetime import date, timedelta, datetime
 import binascii
 import re
-import redis
-from redis import Redis, ConnectionPool
 from gensim.models.doc2vec import Doc2Vec
 from konlpy.tag import Okt
 import numpy as np
@@ -20,8 +18,6 @@ class NoDataException(Exception):
 class ZeroDataException(Exception):
     pass
 
-pool = ConnectionPool(host='localhost', port=6379, db=0)
-r = redis.Redis(connection_pool=pool)
 
 def mysql_updater(clean0):
     keys = [x.decode('utf-8') for x in r.keys('*')]  # redis db 0 에 저장된 key 값 (gid) 모두 인출.
