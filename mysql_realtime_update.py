@@ -53,7 +53,7 @@ def mysql_updater(clean0):
     select gid from news_recommend.news_ago
     """)
     keys = np.array(cursor.fetchall()).reshape(1,-1)[0]
-
+    before_count = len(keys)
     num_recieve = len(articles)  # api로 받은 숫자
     num_deal = 0  # 실제 처리대상 숫자..  400자 이상,  부고 인사 단신 제외
     num_doc2vec = 0  # doc2vec 처리돼 redis와 mysql에 들어간 숫자.
@@ -85,14 +85,13 @@ def mysql_updater(clean0):
 
                         # doc2vec 변환 후 redis에 넣기
                         konlpy0 = okt.pos(content, norm=True, join=True)
-                        vector0 = model.infer_vector(konlpy0)
-                        vector0 = np.array(np.array(vector0))
+                        vector0 = model.infer_vector(konlpy0).astype('float32')
                         # mysql에 넣기
                         cursor.execute(
                             f"""
                             insert ignore into news_recommend.news_ago values(
-                            "{ar['gid']}", "{ar['createtime']}", "{title.replace(' ','')}", "{title}", b'{bin(int(binascii.hexlify(content.encode("utf-8")), 16))[2:]}', "{ar['url']}", "{ar['thumburl']}", "{ar['source']}","{ar['cate_code']}",{len(content)}, b'{bin(int(binascii.hexlify(str(list(vector0)).encode("utf-8")), 16))[2:]}', b'{bin(int(binascii.hexlify(str( json.dumps(konlpy0)).encode("utf-8")), 16))[2:]}'  )
-                            """
+                            "{ar['gid']}", "{ar['createtime']}", "{title.replace(' ','')}", "{title}", b'{bin(int(binascii.hexlify(content.encode("utf-8")), 16))[2:]}', "{ar['url']}", "{ar['thumburl']}", "{ar['source']}","{ar['cate_code']}",{len(content)},%s, b'{bin(int(binascii.hexlify(str( json.dumps(konlpy0)).encode("utf-8")), 16))[2:]}'  )
+                            """, (vector0.tobytes(),)
                         )
                           # 벡터를 mysql에도 저장. 인출떄는  np.array(json.loads(cursor.fetchall()[0][0]))
         db.commit()
@@ -152,7 +151,7 @@ def mysql_updater(clean0):
     """)
     after_count, after_max, after_min = cursor.fetchone()
 
-    return before_count, before_max, before_min, after_count, after_max, after_min, num_recieve, num_deal, num_doc2vec, num_deleted, num_corrected, clean0
+    return before_count, after_count, after_max, after_min, num_recieve, num_deal, num_doc2vec, num_deleted, num_corrected, clean0
 
 if __name__ == '__main__':
     import time
@@ -163,7 +162,7 @@ if __name__ == '__main__':
     while True:
         now0 = datetime.now()
         try:
-            before_count, before_max, before_min, after_count, after_max, after_min, num_recieve, num_deal, num_doc2vec, num_deleted, num_corrected, clean0 = mysql_updater(clean0)
+            before_count, after_count, after_max, after_min, num_recieve, num_deal, num_doc2vec, num_deleted, num_corrected, clean0 = mysql_updater(clean0)
             if num_doc2vec !=0 or num_deleted != 0 or num_corrected !=0: #처리한게 하나라도 있으면.
                 if clean0:
                     print('\n============')
