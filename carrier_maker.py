@@ -45,11 +45,11 @@ def carrier_updater():
         thumburl_list.append(thumburl)
 
     mat_b = np.array(vectors, dtype='float32')
-
+    default0 = np.random.rand(50)
     cursor.execute(
         """
-        update news_recommend.carrier set mat=%s,  gid=%s, title=%s, url=%s, thumburl=%s where id0='1'
-        """,(mat_b.tobytes(), np.array(gid_list).astype('U9').tobytes(), np.array(title_list).astype('U59').tobytes(), np.array(url_list).astype('U68').tobytes(), np.array(thumburl_list).astype('U65').tobytes())
+        update news_recommend.carrier set mat=%s,  gid=%s, title=%s, url=%s, thumburl=%s, default0=%s where id0='1'
+        """,(mat_b.tobytes(), np.array(gid_list).astype('U9').tobytes(), np.array(title_list).astype('U59').tobytes(), np.array(url_list).astype('U68').tobytes(), np.array(thumburl_list).astype('U65').tobytes(), default0.astype('float32'))
     )
 
     db.commit()

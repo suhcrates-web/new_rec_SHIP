@@ -55,14 +55,15 @@ cursor.execute(
     gid mediumblob,
     title mediumblob,
     url mediumblob,
-    thumburl mediumblob
+    thumburl mediumblob,
+    default0 blob
     );
     """
 )
 
 cursor.execute(
     """
-    insert into news_recommend.carrier values("1",NULL,NULL,NULL,NULL,NULL)
+    insert into news_recommend.carrier values("1",NULL,NULL,NULL,NULL,NULL,NULL)
     """
 )
 db.commit()
