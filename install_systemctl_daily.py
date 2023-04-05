@@ -2,7 +2,7 @@ import os
 import sys
 import time
 working_dir = os.getcwd()
-name0 = 'news_rec_SHIP'
+name0 = 'news_rec_SHIP_daily'
 
 service_config = f"""[Unit]
 Description= news_recommend_SHIP_daily
