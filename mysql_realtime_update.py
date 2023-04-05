@@ -73,10 +73,12 @@ def mysql_updater(clean0):
             if len(content) > 400: #글자수 400 이상
                 title = ar['title'].replace('"', '“')
                 if '[부고]' not in title and '[인사]' not in title and '[단신]' not in title:
+
                     if (online_check(title) and ar['ispublish'] == '1') or (
                             '서영아의100세카페' in title.replace(' ', '') and ar['ispublish'] == '0'):
-                                write_ars.append(ar)  # 작성대상 리스트에 쌓음.
-
+                        pass
+                    else:
+                        write_ars.append(ar)  # 작성대상 리스트에 쌓음.
 
     if len(write_ars) > 0:
         model = Doc2Vec.load('donga2000.model')  # doc2vec 모델 로드.
