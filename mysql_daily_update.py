@@ -1,7 +1,5 @@
 import mysql.connector
 from database import config
-import redis
-from redis import Redis, ConnectionPool
 from datetime import datetime, timedelta, date
 import time
 import sys
