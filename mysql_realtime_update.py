@@ -1,7 +1,9 @@
-#### db 0 업데이트 작업
+####
+# v1 : db 0 업데이트 작업
 # 10초에 한번 api로 받아와, doc2vec 에 넣은 뒤  벡터 산출해 저장.
 # api 정보는 mysql 에도 동시에 저장.
 
+#v2 : online_checker 반영.
 import requests
 import json
 import mysql.connector
@@ -17,7 +19,13 @@ class NoDataException(Exception):
     pass
 class ZeroDataException(Exception):
     pass
-
+def online_check(title0):
+    tit0 = title0.replace(' ','')
+    online_list = ['영감한스푼','양종구의100세시대건강법','이헌재의인생홈런','베스트닥터의베스트건강법','병을이겨내는사람들','허진석의톡톡스타트업','전승훈의아트로드']
+    for obj in online_list:
+        if obj in tit0:
+            return True
+    return False
 
 def mysql_updater(clean0):
     okt = Okt()  # 형태소 변환 모듈
@@ -59,41 +67,45 @@ def mysql_updater(clean0):
     num_doc2vec = 0  # doc2vec 처리돼 redis와 mysql에 들어간 숫자.
     write_ars = [] # 등록할 기사 목록
     for ar in articles:
-        content = ar["content"]
-        if len(content) > 400:
-            gid = ar['gid']
-            if gid not in keys:  ## api에서 받은 게 redis 에 없다면
-                write_ars.append(ar)  # 작성대상 리스트에 쌓음.
+        gid = ar['gid']
+        if gid not in keys:  ## api에서 받은 게 mysql 에 없다면
+            content = ar["content"]
+            if len(content) > 400: #글자수 400 이상
+                title = ar['title'].replace('"', '“')
+                if '[부고]' not in title and '[인사]' not in title and '[단신]' not in title:
+                    if (online_check(title) and ar['ispublish'] == '1') or (
+                            '서영아의100세카페' in title.replace(' ', '') and ar['ispublish'] == '0'):
+                                write_ars.append(ar)  # 작성대상 리스트에 쌓음.
+
 
     if len(write_ars) > 0:
         model = Doc2Vec.load('donga2000.model')  # doc2vec 모델 로드.
         for ar in write_ars:
                     num_deal += 1
                     title = ar['title'].replace('"', '“')
-                    if '[부고]' not in title and '[인사]' not in title and '[단신]' not in title:
-                        num_doc2vec +=1
-                        if clean0:
-                            print('\n============')
-                            clean0 = False
-                        print(f"기사 등록 : {ar['gid']} / {title} / {ar['url']}")
-                        content = re.sub(r'\.com$','', ar['content'].strip())
-                        temp = re.split(r'\.(?=[^.]*$)', content)
-                        if len(temp) >1:
-                            content, press = temp
-                        else:
-                            content, press = temp[0], 'unknown'
+                    num_doc2vec +=1
+                    if clean0:
+                        print('\n============')
+                        clean0 = False
+                    print(f"기사 등록 : {ar['gid']} / {title} / {ar['url']}")
+                    content = re.sub(r'\.com$','', ar['content'].strip())
+                    temp = re.split(r'\.(?=[^.]*$)', content)
+                    if len(temp) >1:
+                        content, press = temp
+                    else:
+                        content, press = temp[0], 'unknown'
 
-                        # doc2vec 변환 후 redis에 넣기
-                        konlpy0 = okt.pos(content, norm=True, join=True)
-                        vector0 = model.infer_vector(konlpy0).astype('float32')
-                        # mysql에 넣기
-                        cursor.execute(
-                            f"""
-                            insert ignore into news_recommend.news_ago values(
-                            "{ar['gid']}", "{ar['createtime']}", "{title.replace(' ','')}", "{title}", b'{bin(int(binascii.hexlify(content.encode("utf-8")), 16))[2:]}', "{ar['url']}", "{ar['thumburl']}", "{ar['source']}","{ar['cate_code']}",{len(content)},%s, b'{bin(int(binascii.hexlify(str( json.dumps(konlpy0)).encode("utf-8")), 16))[2:]}'  )
-                            """, (vector0.tobytes(),)
-                        )
-                          # 벡터를 mysql에도 저장. 인출떄는  np.array(json.loads(cursor.fetchall()[0][0]))
+                    # doc2vec 변환 후 redis에 넣기
+                    konlpy0 = okt.pos(content, norm=True, join=True)
+                    vector0 = model.infer_vector(konlpy0).astype('float32')
+                    # mysql에 넣기
+                    cursor.execute(
+                        f"""
+                        insert ignore into news_recommend.news_ago values(
+                        "{ar['gid']}", "{ar['createtime']}", "{title.replace(' ','')}", "{title}", b'{bin(int(binascii.hexlify(content.encode("utf-8")), 16))[2:]}', "{ar['url']}", "{ar['thumburl']}", "{ar['source']}","{ar['cate_code']}",{len(content)},%s, b'{bin(int(binascii.hexlify(str( json.dumps(konlpy0)).encode("utf-8")), 16))[2:]}'  )
+                        """, (vector0.tobytes(),)
+                    )
+                      # 벡터를 mysql에도 저장. 인출떄는  np.array(json.loads(cursor.fetchall()[0][0]))
         db.commit()
 
     # 2) 기사 수정 및 삭제
@@ -103,7 +115,6 @@ def mysql_updater(clean0):
         select gid, title, createtime from news_recommend.news_ago where createtime >="{today0 - timedelta(days=1)}" and createtime < "{today0 + timedelta(days=1)}" 
         """
     )
-
     mysql_dic = {g: (t, c) for g, t, c in cursor.fetchall()}  # gid : title
 
     ### mysql 에 있는 것 중 api 에 없는것을 찾아야 함
