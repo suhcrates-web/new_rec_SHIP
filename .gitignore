@@ -8,6 +8,7 @@ test*.py
 *.model
 !donga2000.model
 exp*.py
+expp*.ipynb
 *.txt
 !ReadMe.txt
 *.log

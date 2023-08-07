@@ -45,7 +45,8 @@ def mysql_updater(clean0):
             raise NoDataException()
         articles += temp['data']
     for ar in articles:
-        api_dic[ar['gid']] = ar['title']   ### 제목 수정 에서 쓸  딕셔너리.
+        # api_dic[ar['gid']] = ar['title']   ### 제목 수정 에서 쓸  딕셔너리.
+        api_dic[ar['gid']] ={'title':ar['title'], 'thumburl':ar['thumburl']}
 
     if len([*api_dic]) ==0:
         print('### ZeroDataException ###')
@@ -114,14 +115,16 @@ def mysql_updater(clean0):
 
     cursor.execute(
         f"""
-        select gid, title, createtime from news_recommend.news_ago where createtime >="{today0 - timedelta(days=1)}" and createtime < "{today0 + timedelta(days=1)}" 
+        select gid, title, createtime, thumburl from news_recommend.news_ago where createtime >="{today0 - timedelta(days=1)}" and createtime < "{today0 + timedelta(days=1)}" 
         """
     )
-    mysql_dic = {g: (t, c) for g, t, c in cursor.fetchall()}  # gid : title
+    mysql_dic = {g: (t, c, th) for g, t, c, th in cursor.fetchall()}  # gid : title
 
     ### mysql 에 있는 것 중 api 에 없는것을 찾아야 함
     del_gid = []
-    correct_dic = {}  # gid : 바꿀제목
+    # correct_dic = {}  # gid : 바꿀제목
+    correct_title = {}
+    correct_thumburl = {}
     for gid in mysql_dic:
         # print(mysql_dic[gid][1], end=' ')
         if gid not in [*api_dic]:  ## mysql에 있는 gid가 api에는 없는경우  ==> 삭제
@@ -132,18 +135,26 @@ def mysql_updater(clean0):
             del_gid.append(gid)
             print(f"삭제 : {gid} / {mysql_dic[gid][0]}")
 
-        elif api_dic[gid] != mysql_dic[gid][0]:  # gid가 있긴 한데 title이 다를 경우 ==> 수정
+        elif api_dic[gid]['title'] != mysql_dic[gid][0]:  # gid가 있긴 한데 title이 다를 경우 ==> 수정
             if clean0:
                 print('\n============')
                 clean0 = False
-            print(f"제목 수정 : {gid} / {mysql_dic[gid][0]} => {api_dic[gid]}  ")
-            correct_dic[gid] = api_dic[gid]
+            print(f"제목 수정 : {gid} / {mysql_dic[gid][0]} => {api_dic[gid]['title']}  ")
+            correct_title[gid] = api_dic[gid]['title']
+
+        elif api_dic[gid]['thumburl'] != mysql_dic[gid][2]:  # gid가 있긴 한데 title이 다를 경우 ==> 수정
+            if clean0:
+                print('\n============')
+                clean0 = False
+            print(f"썸네일url 수정 : {gid} / {mysql_dic[gid][2]} => {api_dic[gid]['thumburl']}  ")
+            correct_thumburl[gid] = api_dic[gid]['thumburl']
+            
         else:
             # print("이상없음")
             pass
 
     num_deleted = len(del_gid) # 삭제 수
-    num_corrected = len(*[correct_dic]) # 수정 수
+    num_corrected = len(*[correct_title]) + len(*[correct_thumburl]) # 수정 수
     ## 삭제  실행
     if len(del_gid) >0:
         cursor.execute(
@@ -155,7 +166,11 @@ def mysql_updater(clean0):
 
     ## 수정 실행
     sql = """update news_recommend.news_ago set title=%s where gid=%s"""
-    cursor.executemany(sql, [(value, key) for key, value in correct_dic.items()])
+    cursor.executemany(sql, [(value, key) for key, value in correct_title.items()])
+    db.commit()
+
+    sql = """update news_recommend.news_ago set thumburl=%s where gid=%s"""
+    cursor.executemany(sql, [(value, key) for key, value in correct_thumburl.items()])
     db.commit()
 
     ## 활동 정리
